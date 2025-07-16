@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 // 简单的sbrk实现（用于测试）
 static char heap[1024 * 1024]; 

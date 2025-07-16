@@ -1,33 +1,40 @@
 #include "malloc.h"
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>  
+#include <unistd.h>
+#include <stdint.h>
 
+// 在Ubuntu系统上，sbrk可能不在unistd.h中，需要手动声明
+#ifndef __APPLE__
+extern void *sbrk(intptr_t increment);
+#endif
 
 static malloc_state_t malloc_state = {0};
 
-
 #define MIN_BLOCK_SIZE (sizeof(block_header_t) + 8)
-
-#define HEAP_SIZE (1024 * 1024)  
-
+#define HEAP_SIZE (1024 * 1024)
 
 void malloc_init(void) {
     if (malloc_state.initialized) {
         return;
     }
     
-  
+    // 在Ubuntu系统上，如果sbrk不可用，使用静态内存
+    #ifdef __linux__
+    // 使用静态内存作为堆
+    static char static_heap[HEAP_SIZE];
+    malloc_state.heap_start = static_heap;
+    #else
     malloc_state.heap_start = sbrk(HEAP_SIZE);
     if (malloc_state.heap_start == (void*)-1) {
         return; 
     }
+    #endif
     
     malloc_state.heap_size = HEAP_SIZE;
     malloc_state.free_list = NULL;
     malloc_state.initialized = 1;
     
-  
     block_header_t *initial_block = (block_header_t*)malloc_state.heap_start;
     initial_block->size = HEAP_SIZE;
     initial_block->is_free = 1;
