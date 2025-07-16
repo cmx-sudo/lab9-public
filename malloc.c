@@ -1,34 +1,33 @@
 #include "malloc.h"
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>  // 添加sbrk函数声明
+#include <unistd.h>  
 
-// 全局内存管理器状态
+
 static malloc_state_t malloc_state = {0};
 
-// 最小块大小（包括头部）
-#define MIN_BLOCK_SIZE (sizeof(block_header_t) + 8)
-// 堆大小
-#define HEAP_SIZE (1024 * 1024)  // 1MB
 
-// 初始化内存管理器
+#define MIN_BLOCK_SIZE (sizeof(block_header_t) + 8)
+
+#define HEAP_SIZE (1024 * 1024)  
+
+
 void malloc_init(void) {
     if (malloc_state.initialized) {
         return;
     }
     
-    // 分配堆空间（这里假设系统提供了sbrk函数）
-    // 在实际系统中，这应该通过系统调用获取内存页
+  
     malloc_state.heap_start = sbrk(HEAP_SIZE);
     if (malloc_state.heap_start == (void*)-1) {
-        return; // 分配失败
+        return; 
     }
     
     malloc_state.heap_size = HEAP_SIZE;
     malloc_state.free_list = NULL;
     malloc_state.initialized = 1;
     
-    // 初始化整个堆为一个大的空闲块
+  
     block_header_t *initial_block = (block_header_t*)malloc_state.heap_start;
     initial_block->size = HEAP_SIZE;
     initial_block->is_free = 1;
@@ -38,7 +37,7 @@ void malloc_init(void) {
     malloc_state.free_list = initial_block;
 }
 
-// 查找合适的空闲块
+
 block_header_t *find_free_block(size_t size) {
     block_header_t *current = malloc_state.free_list;
     
@@ -261,9 +260,21 @@ int sys_calloc(void *args) {
 }
 
 int sys_realloc(void *args) {
-    void **arg_array = (void**)args;
-    void *ptr = arg_array[0];
-    size_t size = (size_t)arg_array[1];
+    if (args == NULL) {
+        return 0; // 返回NULL指针
+    }
+    
+    size_t *arg_array = (size_t*)args;
+    void *ptr = (void*)arg_array[0];
+    size_t size = arg_array[1];
+    
+    // 验证指针有效性
+    if (ptr == NULL) {
+        // 如果原指针为NULL，相当于malloc
+        void *result = malloc(size);
+        return (intptr_t)result;
+    }
+    
     void *result = realloc(ptr, size);
     return (intptr_t)result;
 } 
